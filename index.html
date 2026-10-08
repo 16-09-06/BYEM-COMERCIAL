@@ -30,6 +30,7 @@
     <style>
         .glass-panel { @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm; }
         .role-hidden { display: none !important; }
+        body[data-user-role="colab"] .admin-only { display: none !important; }
         #mobile-navigation { padding-bottom: env(safe-area-inset-bottom); }
         @media (max-width: 767px) {
             html, body { overflow-x: hidden; }
@@ -126,7 +127,7 @@
                     <span>Solicitações de Compra</span>
                 </button>
 
-                <button onclick="switchTab('estoque')" id="nav-estoque" class="admin-only w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                <button onclick="switchTab('estoque')" id="nav-estoque" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
                     <i data-lucide="boxes" class="w-5 h-5"></i>
                     <span>Estoque de Materiais</span>
                 </button>
@@ -693,7 +694,7 @@
 
     <!-- JS & APIS INTEGRADAS -->
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwzBVJnGJFsKfUMCXE40dnAzgjXguEPNC7n8TYsklw0AyQxJyTx4cEHIzA51E3piBXslA/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwzzlJ6uKWlbgRKlQX11auhJ2AXHHUsH0248Y5ismO5UqriPX5xiEX_Hvjrs80s5aXAOA/exec";
 
         let dbSolicitacoes = [];
         let dbPedidos = [];
@@ -856,6 +857,7 @@
                     renderSolicitacoes();
                     renderPedidosComprados();
                     renderEstoque();
+                    renderHistoricoEstoque();
                     renderPedidosPendentes();
                     renderCatalogo();
 
@@ -929,6 +931,7 @@
             renderSolicitacoes();
             renderPedidosComprados();
             renderEstoque();
+            renderHistoricoEstoque();
             renderPedidosPendentes();
             renderCatalogo();
             document.getElementById('sync-status').innerHTML = `<i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i> Conectado`;
@@ -1322,7 +1325,7 @@
 
         // FUNÇÕES DE UI E RENDERS
         function switchTab(tabId) {
-            const adminTabs = ['dashboard', 'pre-pedidos', 'pedidos-comprados', 'estoque', 'cadastro-itens'];
+            const adminTabs = ['dashboard', 'pre-pedidos', 'pedidos-comprados', 'cadastro-itens'];
             if (currentUserRole !== 'admin' && adminTabs.includes(tabId)) {
                 tabId = 'solicitacoes';
             }
@@ -1346,6 +1349,7 @@
             const normalizedRole = String(role || '').trim().toLowerCase();
             const isAdmin = ['admin', 'administrador', 'compras', 'compras (admin)'].includes(normalizedRole);
             currentUserRole = isAdmin ? 'admin' : 'colab';
+            document.body.dataset.userRole = currentUserRole;
 
             document.querySelectorAll('.admin-only').forEach(element => {
                 element.classList.toggle('role-hidden', !isAdmin);
@@ -1808,7 +1812,6 @@
             `).join('')
                 : '<tr><td colspan="6" class="text-center p-4 text-slate-400">Nenhum material encontrado.</td></tr>';
             lucide.createIcons();
-            renderHistoricoEstoque();
         }
 
         function renderHistoricoEstoque() {

@@ -385,9 +385,24 @@ function registrarMovimentacaoEstoque_(tipo, material, quantidade, anterior, atu
 }
 
 function obterHistoricoEstoque_(limit) {
-  return sheetToJSON_('MovimentacoesEstoque')
-    .sort((first, second) => new Date(second.Data).getTime() - new Date(first.Data).getTime())
-    .slice(0, limit);
+  const sheet = getSheet_('MovimentacoesEstoque');
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  const lastColumn = sheet.getLastColumn();
+  const startRow = Math.max(2, lastRow - limit + 1);
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  const rows = sheet.getRange(startRow, 1, lastRow - startRow + 1, lastColumn)
+    .getValues()
+    .reverse();
+
+  return rows.map(row => {
+    const movement = {};
+    headers.forEach((header, index) => {
+      if (header !== '' && header != null) movement[header] = row[index];
+    });
+    return movement;
+  });
 }
 
 function salvarItemCatalogo(data) {
