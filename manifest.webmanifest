@@ -1,0 +1,21 @@
+{
+  "id": "./index.html",
+  "name": "BYEM Gestão de Compras",
+  "short_name": "BYEM",
+  "description": "Gestão de solicitações, pedidos e estoque da BYEM.",
+  "lang": "pt-BR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8fafc",
+  "theme_color": "#0d9488",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

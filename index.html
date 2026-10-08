@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="BYEM Gestão">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./icon.svg">
+    <title>BYEM Gestão</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel { @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm; }
+        .role-hidden { display: none !important; }
+        #mobile-navigation { padding-bottom: env(safe-area-inset-bottom); }
+        @media (max-width: 767px) {
+            html, body { overflow-x: hidden; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen font-sans transition-colors duration-200">
+
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen" class="w-full min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-sm glass-panel p-8 space-y-6">
+            <div class="text-center space-y-2">
+                <i data-lucide="shopping-bag" class="w-10 h-10 text-brand-600 dark:text-brand-500 mx-auto"></i>
+                <h1 class="text-2xl font-bold">BYEM Gestão</h1>
+                <p class="text-sm text-slate-500">Selecione seu usuário para continuar</p>
+            </div>
+            <form onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
+                <div>
+                    <label for="login-user" class="block text-xs font-semibold mb-1">Usuário</label>
+                    <select id="login-user" class="w-full text-sm border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent"></select>
+                </div>
+                <div>
+                    <label for="login-password" class="block text-xs font-semibold mb-1">Senha</label>
+                    <input type="password" id="login-password" class="w-full text-sm border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Sua senha">
+                </div>
+                <button id="btn-login" type="submit" class="w-full px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:bg-brand-700/50 disabled:cursor-wait">
+                    <span id="btn-login-text">Entrar no Sistema</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL DA APLICAÇÃO (escondido por padrão) -->
+    <div id="app-wrapper" class="hidden min-h-screen flex flex-col">
+    <!-- Topbar Header -->
+    <header class="min-h-16 h-auto border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 px-3 sm:px-6 py-2 sm:py-0 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sticky top-0 z-30">
+        <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
+            <i data-lucide="shopping-bag" class="w-7 h-7 text-brand-600 dark:text-brand-500"></i>
+            <span class="font-bold text-lg tracking-tight">BYEM <span class="text-xs font-normal px-2 py-0.5 bg-brand-100 dark:bg-brand-700 text-brand-700 dark:text-brand-100 rounded-full">v1.0</span></span>
+            <span id="sync-status" class="hidden sm:flex text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full items-center gap-1">
+                <i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> Sincronizando...
+            </span>
+        </div>
+
+        <div class="flex items-center space-x-2 sm:space-x-4 ml-auto">
+            <!-- Dark Mode -->
+            <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400">
+                <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+            </button>
+
+            <button id="btn-install-app" type="button" onclick="instalarAplicativo()" title="Instalar BYEM" aria-label="Instalar BYEM" class="hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-brand-600">
+                <i data-lucide="download" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Usuário -->
+            <div class="flex items-center space-x-3 border-l pl-4 border-slate-200 dark:border-slate-700">
+                <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-sm" id="user-avatar">?</div>
+                <div class="hidden sm:block text-left text-xs">
+                    <p class="font-bold leading-none" id="user-name">Visitante</p>
+                    <p class="text-slate-500 dark:text-slate-400 mt-0.5" id="user-role-label">Não autenticado</p>
+                </div>
+                <button onclick="handleLogout()" title="Sair do sistema" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-800 p-4 space-y-1 flex-shrink-0 hidden md:block">
+            <nav class="space-y-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="admin-only w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </button>
+                
+                <div class="pt-2 pb-1 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gestão</div>
+
+                <button onclick="switchTab('pre-pedidos')" id="nav-pre-pedidos" class="admin-only w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <i data-lucide="file-plus-2" class="w-5 h-5"></i>
+                    <span>Pré-Pedidos</span>
+                </button>
+
+                <button onclick="switchTab('pedidos-comprados')" id="nav-pedidos-comprados" class="admin-only w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                    <span>Pedidos Comprados</span>
+                </button>
+
+                <button onclick="switchTab('solicitacoes')" id="nav-solicitacoes" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                    <span>Solicitações de Compra</span>
+                </button>
+
+                <button onclick="switchTab('estoque')" id="nav-estoque" class="admin-only w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <i data-lucide="boxes" class="w-5 h-5"></i>
+                    <span>Estoque de Materiais</span>
+                </button>
+
+                <div class="pt-4 pb-1 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider admin-only">Configurações</div>
+
+                <button onclick="switchTab('cadastro-itens')" id="nav-cadastro-itens" class="admin-only w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Catálogo de Itens</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Área Principal -->
+        <main class="flex-1 overflow-y-auto p-3 pb-28 sm:p-6 sm:pb-6">
+
+            <!-- DASHBOARD TAB -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold">Visão Geral de Compras</h1>
+                    <p class="text-xs text-slate-500">Indicadores e requisições em tempo real</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-panel p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Pedidos em Aberto</p>
+                            <p class="text-2xl font-bold mt-1" id="kpi-aberto">0</p>
+                        </div>
+                        <div class="p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-lg"><i data-lucide="clock"></i></div>
+                    </div>
+                    <div class="glass-panel p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Pedidos Aprovados</p>
+                            <p class="text-2xl font-bold mt-1" id="kpi-aprovados">0</p>
+                        </div>
+                        <div class="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg"><i data-lucide="check-circle-2"></i></div>
+                    </div>
+                    <div class="glass-panel p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Total Comprado</p>
+                            <p class="text-2xl font-bold mt-1 text-brand-600" id="kpi-valor-total">R$ 0,00</p>
+                        </div>
+                        <div class="p-3 bg-brand-100 dark:bg-brand-900/30 text-brand-600 rounded-lg"><i data-lucide="dollar-sign"></i></div>
+                    </div>
+                    <div class="glass-panel p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-slate-500 font-medium">Estoque Crítico</p>
+                            <p class="text-2xl font-bold mt-1 text-rose-600" id="kpi-estoque-baixo">0</p>
+                        </div>
+                        <div class="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 rounded-lg"><i data-lucide="alert-triangle"></i></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-panel p-5">
+                        <h3 class="font-bold text-sm mb-4 flex items-center space-x-2">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-amber-500"></i>
+                            <span>Solicitações Pendentes</span>
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="border-b border-slate-200 dark:border-slate-700 text-slate-400">
+                                    <tr>
+                                        <th class="pb-2">Colaborador</th>
+                                        <th class="pb-2">Item</th>
+                                        <th class="pb-2">Qtd</th>
+                                        <th class="pb-2">Prioridade</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800" id="dash-solicitacoes">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5">
+                        <h3 class="font-bold text-sm mb-4 flex items-center space-x-2">
+                            <i data-lucide="package-x" class="w-4 h-4 text-rose-500"></i>
+                            <span>Estoque Baixo</span>
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="border-b border-slate-200 dark:border-slate-700 text-slate-400">
+                                    <tr>
+                                        <th class="pb-2">Material</th>
+                                        <th class="pb-2">Atual</th>
+                                        <th class="pb-2">Mínimo</th>
+                                        <th class="pb-2">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800" id="dash-estoque-baixo">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PRÉ-PEDIDOS TAB -->
+            <section id="tab-pre-pedidos" class="tab-content hidden space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold">Elaboração de Pré-Pedido</h1>
+                    <p class="text-xs text-slate-500">Monte e aprove pedidos de compra para a empresa</p>
+                </div>
+
+                <form id="form-pre-pedido" onsubmit="event.preventDefault();" class="glass-panel p-6 space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Fornecedor / Loja</label>
+                            <input type="text" id="pre-fornecedor" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Ex: Kalunga / Atacadão">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Responsável pela Compra</label>
+                            <input type="text" id="pre-responsavel" value="Tabata" readonly class="w-full text-xs border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Forma de Pagamento</label>
+                            <select id="pre-pagamento" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent">
+                                <option value="PIX">PIX</option>
+                                <option value="Boleto">Boleto Bancário</option>
+                                <option value="Cartao">Cartão de Crédito</option>
+                                <option value="Transferencia">Transferência</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-200 dark:border-slate-700">
+
+                    <div>
+                        <h3 class="font-bold text-sm mb-3">Itens do Pedido</h3>
+                        <div class="space-y-3" id="itens-container"></div>
+                        <button type="button" onclick="adicionarLinhaItem()" class="mt-3 text-xs text-brand-600 font-semibold flex items-center space-x-1 hover:underline">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                            <span>Adicionar Item</span>
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <div class="text-right">
+                            <p class="text-xs text-slate-500">Valor Total Estimado</p>
+                            <p class="text-2xl font-bold text-brand-600" id="pre-total-geral">R$ 0,00</p>
+                        </div>
+                        <div id="botoes-acao-pedido" class="flex items-center gap-2">
+                            <button type="button" onclick="salvarRascunhoPedido()" class="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-xs font-medium flex items-center gap-2">
+                                <i data-lucide="save" class="w-4 h-4"></i>
+                                <span>Salvar Rascunho</span>
+                            </button>
+                            <button type="button" onclick="aprovarPedido()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4"></i>
+                                <span>Aprovar e Gravar na Planilha</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Pedidos Aguardando Pagamento -->
+                <div class="glass-panel p-5 space-y-4">
+                    <h3 class="font-bold text-sm flex items-center space-x-2">
+                        <i data-lucide="hourglass" class="w-4 h-4 text-amber-500"></i>
+                        <span>Pedidos Aguardando Pagamento</span>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="border-b border-slate-200 dark:border-slate-700 text-slate-400">
+                                <tr>
+                                    <th class="pb-2">ID</th>
+                                    <th class="pb-2">Fornecedor</th>
+                                    <th class="pb-2">Total</th>
+                                    <th class="pb-2">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800" id="lista-pedidos-pendentes"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PEDIDOS COMPRADOS TAB -->
+            <section id="tab-pedidos-comprados" class="tab-content hidden space-y-6">
+                <div>
+                    <h1 class="text-2xl font-bold">Pedidos Aprovados e Comprados</h1>
+                    <p class="text-xs text-slate-500">Solicitações recebidas e histórico de compras</p>
+                </div>
+
+                <div class="glass-panel overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <h2 class="font-bold text-sm">Solicitações de compra recebidas</h2>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input id="filtro-solicitacoes-recebidas" type="search" oninput="renderSolicitacoesRecebidas()" placeholder="Buscar solicitante ou item" aria-label="Buscar solicitações recebidas" class="text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-transparent">
+                            <select id="filtro-status-solicitacoes-recebidas" onchange="renderSolicitacoesRecebidas()" aria-label="Filtrar solicitações por status" class="text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-transparent">
+                                <option value="">Todos os status</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Aprovada">Aprovada</option>
+                                <option value="Aguardando Compra">Aguardando Compra</option>
+                                <option value="VERIFICANDO">VERIFICANDO</option>
+                                <option value="COMPRADO">COMPRADO</option>
+                                <option value="RECUSADO">RECUSADO</option>
+                            </select>
+                            <button type="button" onclick="criarPedidoComSolicitacoesSelecionadas()" class="px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-2">
+                                <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                                <span>Criar pedido com aprovadas</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                                <tr>
+                                    <th class="p-3">Incluir</th>
+                                    <th class="p-3">Data</th>
+                                    <th class="p-3">Solicitante</th>
+                                    <th class="p-3">Setor</th>
+                                    <th class="p-3">Item</th>
+                                    <th class="p-3">Qtd</th>
+                                    <th class="p-3">Prioridade</th>
+                                    <th class="p-3">Status</th>
+                                    <th class="p-3">Pedido gerado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-solicitacoes-pedidos" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="glass-panel overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-2 sm:justify-end">
+                        <input id="filtro-pedidos" type="search" oninput="renderPedidosComprados()" placeholder="Buscar ID, fornecedor ou responsável" aria-label="Buscar pedidos" class="w-full sm:w-72 text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-transparent">
+                        <select id="filtro-status-pedidos" onchange="renderPedidosComprados()" aria-label="Filtrar pedidos por status" class="text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-transparent">
+                            <option value="">Todos os status</option>
+                            <option value="Aguardando Compra">Aguardando Compra</option>
+                            <option value="COMPRADO">COMPRADO</option>
+                            <option value="VERIFICANDO">VERIFICANDO</option>
+                            <option value="RECUSADO">RECUSADO</option>
+                        </select>
+                    </div>
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                                <th class="p-3">ID Pedido</th>
+                                <th class="p-3">Data</th>
+                                <th class="p-3">Fornecedor</th>
+                                <th class="p-3">Responsável</th>
+                                <th class="p-3">Pagamento</th>
+                                <th class="p-3">Total</th>
+                                <th class="p-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-pedidos-comprados" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SOLICITAÇÕES TAB -->
+            <section id="tab-solicitacoes" class="tab-content hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold">Solicitações de Compra</h1>
+                        <p class="text-xs text-slate-500">Requisições enviadas pelos colaboradores</p>
+                    </div>
+                    <button onclick="abrirModalSolicitacao()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs px-4 py-2 rounded-lg font-medium flex items-center space-x-1">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Nova Solicitação</span>
+                    </button>
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:justify-end gap-2">
+                    <input id="filtro-solicitacoes" type="search" oninput="renderSolicitacoes()" placeholder="Buscar solicitante, setor ou item" aria-label="Buscar solicitações" class="w-full sm:w-72 text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent">
+                    <select id="filtro-status-solicitacoes" onchange="renderSolicitacoes()" aria-label="Filtrar solicitações por status" class="text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent">
+                        <option value="">Todos os status</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Aprovada">Aprovada</option>
+                        <option value="Aguardando Compra">Aguardando Compra</option>
+                        <option value="VERIFICANDO">VERIFICANDO</option>
+                        <option value="COMPRADO">COMPRADO</option>
+                        <option value="RECUSADO">RECUSADO</option>
+                    </select>
+                </div>
+
+                <div class="glass-panel overflow-hidden">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                                <th class="p-3">Data</th>
+                                <th class="p-3">Colaborador</th>
+                                <th class="p-3">Setor</th>
+                                <th class="p-3">Item</th>
+                                <th class="p-3">Qtd</th>
+                                <th class="p-3">Prioridade</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-solicitacoes" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ESTOQUE TAB -->
+            <section id="tab-estoque" class="tab-content hidden space-y-6">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold">Estoque de Materiais</h1>
+                        <p class="text-xs text-slate-500">Controle de insumos cadastrados na planilha</p>
+                    </div>
+                    <button type="button" onclick="abrirFormularioEstoque()" class="admin-only shrink-0 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">
+                        <i data-lucide="package-plus" class="w-4 h-4"></i>
+                        <span>Adicionar estoque</span>
+                    </button>
+                </div>
+
+                <form id="form-estoque" onsubmit="event.preventDefault(); salvarEstoqueManual();" class="admin-only hidden glass-panel p-5 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                        <div>
+                            <label for="estoque-nome" class="block text-xs font-semibold mb-1">Material</label>
+                            <input id="estoque-nome" type="text" required class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Ex: Papel A4">
+                        </div>
+                        <div>
+                            <label for="estoque-categoria" class="block text-xs font-semibold mb-1">Categoria</label>
+                            <input id="estoque-categoria" type="text" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Ex: Escritório">
+                        </div>
+                        <div>
+                            <label for="estoque-qtd" class="block text-xs font-semibold mb-1">Quantidade a adicionar</label>
+                            <input id="estoque-qtd" type="number" min="1" step="1" value="1" required class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent">
+                        </div>
+                        <div>
+                            <label for="estoque-minimo" class="block text-xs font-semibold mb-1">Mínimo (opcional)</label>
+                            <input id="estoque-minimo" type="number" min="0" step="1" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Manter atual">
+                        </div>
+                        <div>
+                            <label for="estoque-localizacao" class="block text-xs font-semibold mb-1">Localização</label>
+                            <input id="estoque-localizacao" type="text" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Ex: Armário 2">
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="fecharFormularioEstoque()" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs">Cancelar</button>
+                        <button id="btn-salvar-estoque" type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium">Salvar estoque</button>
+                    </div>
+                </form>
+
+                <div class="flex justify-end">
+                    <input id="filtro-estoque" type="search" oninput="renderEstoque()" placeholder="Buscar material ou categoria" aria-label="Buscar no estoque" class="w-full sm:w-72 text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent">
+                </div>
+
+                <div class="glass-panel overflow-hidden">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                                <th class="p-3">Nome</th>
+                                <th class="p-3">Categoria</th>
+                                <th class="p-3">Qtd Atual</th>
+                                <th class="p-3">Mínimo</th>
+                                <th class="p-3">Localização</th>
+                                <th class="p-3">Última Mov.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-estoque" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                    </table>
+                </div>
+
+                <div class="glass-panel overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <h2 class="font-bold text-sm">Histórico de movimentações</h2>
+                        <input id="filtro-movimentacoes" type="search" oninput="renderHistoricoEstoque()" placeholder="Buscar material, tipo ou responsável" aria-label="Buscar movimentações" class="w-full sm:w-72 text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                                <tr>
+                                    <th class="p-3">Data</th>
+                                    <th class="p-3">Tipo</th>
+                                    <th class="p-3">Material</th>
+                                    <th class="p-3">Movimentação</th>
+                                    <th class="p-3">Anterior</th>
+                                    <th class="p-3">Atual</th>
+                                    <th class="p-3">Responsável</th>
+                                    <th class="p-3">Motivo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-movimentacoes-estoque" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CATÁLOGO DE ITENS TAB -->
+            <section id="tab-cadastro-itens" class="tab-content hidden space-y-6 admin-only">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold">Catálogo de Itens</h1>
+                        <p class="text-xs text-slate-500">Gerencie os itens e suas variações para agilizar os pedidos</p>
+                    </div>
+                </div>
+
+                <!-- Formulário de Cadastro de Item -->
+                <form id="form-catalogo" onsubmit="event.preventDefault(); salvarItemCatalogo();" class="glass-panel p-6 space-y-6">
+                    <h3 class="font-bold text-base">Cadastrar Novo Item no Catálogo</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Nome do Item (Pai)</label>
+                            <input type="text" class="catalog-name w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" required placeholder="Ex: Caneta Esferográfica">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Categoria</label>
+                            <input type="text" class="catalog-category w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Ex: Material de Escritório">
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-semibold mb-3">Variações do Item</h4>
+                        <div class="catalog-variations space-y-2"></div>
+                        <button type="button" onclick="adicionarLinhaVariacao(this)" class="mt-2 text-xs text-brand-600 font-semibold flex items-center space-x-1 hover:underline">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i><span>Adicionar Variação (Ex: Azul, Preta)</span>
+                        </button>
+                    </div>
+                    <button type="submit" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">Salvar no Catálogo</button>
+                </form>
+
+                <!-- Tabela do Catálogo -->
+                <div class="glass-panel p-5">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-100 dark:bg-slate-800 text-slate-500 border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                                <th class="p-3">Nome do Item</th>
+                                <th class="p-3">ID</th>
+                                <th class="p-3">Categoria</th>
+                                <th class="p-3">Variações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-catalogo" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+        <nav id="mobile-navigation" class="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 backdrop-blur" aria-label="Navegação principal">
+            <div class="flex overflow-x-auto">
+                <button type="button" data-tab="dashboard" onclick="switchTab('dashboard')" class="admin-only mobile-nav-item min-w-[56px] flex-1 min-h-16 flex flex-col items-center justify-center gap-1 text-slate-500">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i><span class="text-[9px]">Painel</span>
+                </button>
+                <button type="button" data-tab="pre-pedidos" onclick="switchTab('pre-pedidos')" class="admin-only mobile-nav-item min-w-[56px] flex-1 min-h-16 flex flex-col items-center justify-center gap-1 text-slate-500">
+                    <i data-lucide="file-plus-2" class="w-5 h-5"></i><span class="text-[9px]">Pré-pedido</span>
+                </button>
+                <button type="button" data-tab="pedidos-comprados" onclick="switchTab('pedidos-comprados')" class="admin-only mobile-nav-item min-w-[56px] flex-1 min-h-16 flex flex-col items-center justify-center gap-1 text-slate-500">
+                    <i data-lucide="shopping-cart" class="w-5 h-5"></i><span class="text-[9px]">Pedidos</span>
+                </button>
+                <button type="button" data-tab="solicitacoes" onclick="switchTab('solicitacoes')" class="mobile-nav-item min-w-[56px] flex-1 min-h-16 flex flex-col items-center justify-center gap-1 text-slate-500">
+                    <i data-lucide="clipboard-list" class="w-5 h-5"></i><span class="text-[9px]">Solicitações</span>
+                </button>
+                <button type="button" data-tab="estoque" onclick="switchTab('estoque')" class="mobile-nav-item min-w-[56px] flex-1 min-h-16 flex flex-col items-center justify-center gap-1 text-slate-500">
+                    <i data-lucide="boxes" class="w-5 h-5"></i><span class="text-[9px]">Estoque</span>
+                </button>
+                <button type="button" data-tab="cadastro-itens" onclick="switchTab('cadastro-itens')" class="admin-only mobile-nav-item min-w-[56px] flex-1 min-h-16 flex flex-col items-center justify-center gap-1 text-slate-500">
+                    <i data-lucide="settings" class="w-5 h-5"></i><span class="text-[9px]">Catálogo</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+    </div>
+
+    <!-- MODAL DE DETALHE DO PEDIDO -->
+    <div id="modal-detalhe-pedido" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-bold text-base">Detalhes do Pedido <span id="detalhe-pedido-id" class="font-mono text-brand-600"></span></h3>
+                    <p class="text-xs text-slate-500">Fornecedor: <span id="detalhe-pedido-fornecedor" class="font-medium"></span></p>
+                </div>
+                <button onclick="fecharModalDetalhePedido()" class="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 -mt-1 -mr-1">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto space-y-4 pr-2 -mr-2">
+                <h4 class="text-xs font-bold uppercase text-slate-400">Itens do Pedido</h4>
+                <div id="detalhe-pedido-itens" class="space-y-2">
+                    <!-- Itens serão injetados aqui -->
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Alterar Status</label>
+                    <select id="detalhe-pedido-status" class="text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent">
+                        <option value="Aguardando Compra">Aguardando Compra</option>
+                        <option value="COMPRADO">COMPRADO</option>
+                        <option value="VERIFICANDO">VERIFICANDO</option>
+                        <option value="RECUSADO">RECUSADO</option>
+                    </select>
+                </div>
+                <button onclick="atualizarStatusPedido()" class="px-4 py-2 bg-brand-600 text-white rounded-lg text-xs font-medium flex items-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CADASTRO RÁPIDO (CATÁLOGO) -->
+    <div id="modal-cadastro-rapido" class="fixed inset-0 bg-black/50 hidden z-[60] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-2xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 id="modal-cadastro-titulo" class="font-bold text-base">Cadastrar Novo Item</h3>
+                <button onclick="fecharModalCadastroRapido()" class="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 -mt-1 -mr-1">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                </button>
+            </div>
+            <!-- O conteúdo do formulário de catálogo será injetado aqui -->
+            <div id="modal-cadastro-conteudo"></div>
+        </div>
+    </div>
+
+    <!-- MODAL DE NOVA VARIAÇÃO -->
+    <div id="modal-nova-variacao" class="fixed inset-0 bg-black/50 hidden z-[60] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-sm space-y-4">
+            <h3 class="font-bold text-base">Adicionar Nova Variação</h3>
+            <input type="text" id="input-nova-variacao" placeholder="Nome da nova variação" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent">
+            <div class="flex justify-end gap-2"><button onclick="fecharModalNovaVariacao()" class="px-4 py-2 border border-slate-300 rounded-lg text-xs">Cancelar</button><button id="btn-salvar-variacao" class="px-4 py-2 bg-brand-600 text-white rounded-lg text-xs">Salvar Variação</button></div>
+        </div>
+    </div>
+
+    <!-- MODAL DE NOVA SOLICITAÇÃO -->
+    <div id="modal-solicitacao" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4">
+            <h3 class="font-bold text-base">Nova Solicitação de Compra</h3>
+            <div>
+                <label class="block text-xs font-semibold mb-1">Seu Nome</label>
+                <input type="text" id="sol-colaborador" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Ex: Sophia">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold mb-1">Setor</label>
+                <input type="text" id="sol-setor" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Ex: RH">
+            </div>
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-xs font-semibold">Itens solicitados</label>
+                    <button type="button" onclick="adicionarItemSolicitacao()" class="text-xs text-brand-600 font-semibold flex items-center gap-1 hover:underline">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Adicionar item</span>
+                    </button>
+                </div>
+                <div id="sol-itens-container" class="space-y-2"></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Prioridade</label>
+                    <select id="sol-prioridade" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent">
+                        <option value="Baixa">Baixa</option>
+                        <option value="Média">Média</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Urgente">Urgente</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold mb-1">Justificativa</label>
+                <input type="text" id="sol-justificativa" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent" placeholder="Motivo da solicitação">
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="fecharModalSolicitacao()" class="px-4 py-2 border border-slate-300 rounded-lg text-xs">Cancelar</button>
+                <button type="button" onclick="enviarSolicitacaoSheet()" class="px-4 py-2 bg-brand-600 text-white rounded-lg text-xs">Enviar Solicitação</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS & APIS INTEGRADAS -->
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwzBVJnGJFsKfUMCXE40dnAzgjXguEPNC7n8TYsklw0AyQxJyTx4cEHIzA51E3piBXslA/exec";
+
+        let dbSolicitacoes = [];
+        let dbPedidos = [];
+        let dbEstoque = [];
+        let dbMovimentacoesEstoque = [];
+        let dbCatalogo = [];
+        let dbUsers = []; // Armazenará os usuários vindos da planilha
+        let deferredInstallPrompt = null;
+
+        let currentUser = null;
+
+        // Variáveis de estado do usuário
+        let currentUserRole = 'guest'; // Define um papel padrão antes do login
+
+        window.onload = function() {
+            inicializarPwa();
+            lucide.createIcons();
+            
+            // Otimização: Se o usuário já estava logado, mostra a interface principal imediatamente.
+            const savedUserId = localStorage.getItem('byem_user_id');
+            if (savedUserId) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-wrapper').classList.remove('hidden');
+                document.getElementById('user-name').innerText = 'Carregando...';
+                document.getElementById('user-avatar').innerText = '...';
+                document.getElementById('user-role-label').innerText = 'Verificando sessão...';
+            }
+            
+            // Carrega os dados e finaliza o login ou mostra a tela de login.
+            initializeApp();
+        };
+
+        function inicializarPwa() {
+            const isSecureOrigin = location.protocol === 'https:' ||
+                location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            const installButton = document.getElementById('btn-install-app');
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+            if ('serviceWorker' in navigator && isSecureOrigin) {
+                navigator.serviceWorker.register('./service-worker.js').catch(error => {
+                    console.error('Não foi possível registrar o app:', error);
+                });
+            }
+
+            if (isStandalone || !isSecureOrigin) return;
+
+            const isAppleMobile = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            if (isAppleMobile) installButton.classList.remove('hidden');
+
+            window.addEventListener('beforeinstallprompt', event => {
+                event.preventDefault();
+                deferredInstallPrompt = event;
+                installButton.classList.remove('hidden');
+                lucide.createIcons();
+            });
+
+            window.addEventListener('appinstalled', () => {
+                deferredInstallPrompt = null;
+                installButton.classList.add('hidden');
+            });
+        }
+
+        async function instalarAplicativo() {
+            if (!deferredInstallPrompt) {
+                alert('No iPhone/iPad, abra o menu Compartilhar do Safari e escolha "Adicionar à Tela de Início".');
+                return;
+            }
+
+            deferredInstallPrompt.prompt();
+            await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            document.getElementById('btn-install-app').classList.add('hidden');
+        }
+
+        async function initializeApp() {
+            const loginButton = document.getElementById('btn-login');
+            const loginButtonText = document.getElementById('btn-login-text');
+            loginButton.disabled = true;
+            loginButtonText.innerText = 'Carregando dados...';
+
+            try {
+                const res = await fetch(`${API_URL}?action=getInitialData`);
+
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`Falha na requisição ao servidor: ${res.status} ${res.statusText}. Resposta: ${errorText}`);
+                }
+
+                const data = await parseApiResponse(res);
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Resposta da API inválida. O Google Apps Script não retornou JSON.');
+                }
+
+                dbUsers = data.usuarios || [];
+                dbSolicitacoes = data.solicitacoes || [];
+                dbPedidos = data.pedidos || [];
+                dbEstoque = data.estoque || [];
+                dbMovimentacoesEstoque = data.movimentacoesEstoque || [];
+                dbCatalogo = data.catalogo || [];
+
+                // Verifica se há um usuário salvo para tentar o login automático
+                // O auto-login não verifica a senha, apenas a existência do ID no localStorage e na planilha.
+                const savedUserId = localStorage.getItem('byem_user_id');
+                if (savedUserId) {
+                    const userFromStorage = dbUsers.find(u => u.id === savedUserId);
+                    if (userFromStorage) {
+                        // Usuário válido, finaliza o login (a UI já está visível)
+                        loginUser(userFromStorage, false); // false: não precisa salvar no localStorage de novo
+                        return;
+                    } else {
+                        // O usuário salvo não existe mais na planilha, força o logout
+                        handleLogout();
+                        renderLoginScreen(dbUsers); // Popula a tela de login que agora está visível
+                        return;
+                        
+                    }
+                }
+
+                // Se não houver usuário salvo, mostra a tela de login
+                renderLoginScreen(dbUsers);
+            } catch (err) {
+                loginButtonText.innerText = 'Erro ao conectar';
+                console.error("Erro ao inicializar:", err);
+                // Se deu erro e o usuário estava "logado", desloga ele.
+                // Isso lida com casos onde a busca inicial de dados falha, mesmo que o localStorage tenha um ID.
+                if (localStorage.getItem('byem_user_id')) {
+                    handleLogout();
+                    alert('Erro de conexão. Por favor, faça o login novamente.');
+                }
+            }
+        }
+
+        function renderLoginScreen(users) {
+            const select = document.getElementById('login-user');
+            select.innerHTML = users.map(user => `<option value="${user.id}">${user.name}</option>`).join('');
+            
+            const loginButton = document.getElementById('btn-login');
+            const loginButtonText = document.getElementById('btn-login-text');
+            loginButton.disabled = false;
+            loginButtonText.innerText = 'Entrar no Sistema';
+            lucide.createIcons(); // Re-renderiza ícones na tela de login
+        }
+
+        // BINDING DO GOOGLE SHEETS
+        async function carregarDadosSheet() {
+            document.getElementById('sync-status').innerHTML = `<i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> Sincronizando...`; lucide.createIcons();
+            try {
+                const res = await fetch(`${API_URL}?action=getInitialData`);
+                const data = await parseApiResponse(res);
+
+                if (data && typeof data === 'object') {
+                    dbSolicitacoes = data.solicitacoes || dbSolicitacoes;
+                    dbPedidos = data.pedidos || dbPedidos;
+                    dbEstoque = data.estoque || dbEstoque;
+                    dbMovimentacoesEstoque = data.movimentacoesEstoque || dbMovimentacoesEstoque;
+                    dbCatalogo = data.catalogo || dbCatalogo;
+                    dbUsers = data.usuarios || dbUsers;
+
+                    renderDashboard();
+                    renderSolicitacoes();
+                    renderPedidosComprados();
+                    renderEstoque();
+                    renderPedidosPendentes();
+                    renderCatalogo();
+
+                    document.getElementById('sync-status').innerHTML = `<i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i> Conectado`;
+                    lucide.createIcons();
+                }
+            } catch (err) {
+                console.error('Erro ao ler do Sheets:', err);
+                document.getElementById('sync-status').innerHTML = `<i data-lucide="alert-triangle" class="w-3 h-3 text-rose-500"></i> Erro Conexão`;
+                lucide.createIcons();
+            }
+        }
+
+        async function handleLogin() {
+            const loginButton = document.getElementById('btn-login');
+            const loginButtonText = document.getElementById('btn-login-text');
+            const loginPasswordInput = document.getElementById('login-password');
+
+            const selectedUserId = document.getElementById('login-user').value;
+            const enteredPassword = loginPasswordInput.value;
+
+            loginButton.disabled = true;
+            loginButtonText.innerText = 'Verificando...';
+
+            try {
+                const payload = {
+                    action: 'verifyLogin',
+                    userId: selectedUserId,
+                    password: enteredPassword
+                };
+
+                const verifiedUser = await apiFetch(payload);
+
+                if (verifiedUser && verifiedUser.id) {
+                    loginUser(verifiedUser, true);
+                } else if (verifiedUser === 'OK') {
+                    alert('A API respondeu OK, mas o script do Google não retornou os dados do usuário. Verifique o código do Apps Script e a ação verifyLogin.');
+                } else {
+                    alert('Usuário ou senha inválidos. Verifique os dados e tente novamente.');
+                }
+            } catch (err) {
+                console.error('Erro no login:', err);
+            } finally {
+                loginButton.disabled = false;
+                loginButtonText.innerText = 'Entrar no Sistema';
+            }
+            loginPasswordInput.value = '';
+        }
+
+        function loginUser(user, saveToStorage = true) {
+            currentUser = user;
+            if (saveToStorage) {
+                localStorage.setItem('byem_user_id', user.id); // Salva o ID do usuário no localStorage
+            }
+
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-wrapper').classList.remove('hidden');
+
+            updateUserInfo();
+            renderAllSections();
+            setUserRole(currentUser.role);
+            
+            // Adiciona a linha de item apenas se for admin e não for um auto-login (para evitar múltiplas linhas ao recarregar)
+            if (currentUser.role === 'admin') {
+                adicionarLinhaItem();
+            }
+        }
+
+        function renderAllSections() {
+            renderDashboard();
+            renderSolicitacoes();
+            renderPedidosComprados();
+            renderEstoque();
+            renderPedidosPendentes();
+            renderCatalogo();
+            document.getElementById('sync-status').innerHTML = `<i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i> Conectado`;
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('byem_user_id'); // Remove o usuário salvo
+            currentUser = null;
+            document.getElementById('app-wrapper').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+
+            // Reseta a UI
+            document.getElementById('user-name').innerText = 'Visitante';
+            document.getElementById('user-avatar').innerText = '?';
+            document.getElementById('user-role-label').innerText = 'Não autenticado';
+            document.getElementById('login-password').value = ''; // Limpa o campo de senha ao sair
+            
+            // Limpa conteúdo dinâmico para evitar vazamento de dados entre sessões
+            const contentAreas = ['dash-solicitacoes', 'dash-estoque-baixo', 'lista-pedidos-pendentes', 'lista-pedidos-comprados', 'lista-solicitacoes', 'lista-estoque', 'lista-catalogo', 'itens-container'];
+            contentAreas.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+            document.getElementById('form-pre-pedido')?.reset();
+            document.getElementById('form-catalogo')?.reset();
+        }
+
+        async function aprovarPedido() {
+            const loja = document.getElementById('pre-fornecedor').value;
+            if(!loja) return alert('Por favor, informe o fornecedor/loja.');
+
+            const itens = [];
+            for (const row of document.querySelectorAll('#itens-container > div')) {
+                const selects = row.querySelectorAll('select');
+                const itemId = selects[0]?.value;
+                if (!itemId) continue;
+
+                const produto = dbCatalogo.find(item => String(item.ID) === String(itemId));
+                if (!produto) return alert('Um dos itens selecionados não está mais no catálogo. Atualize a página e tente novamente.');
+
+                const variacao = selects[1]?.value || '';
+                const temVariacoes = String(produto.Variacoes || '').split(',').some(value => value.trim());
+                if (temVariacoes && !variacao) {
+                    return alert(`Selecione uma variação para o item "${produto.Nome}".`);
+                }
+
+                const qtd = Number(row.querySelector('input[placeholder="Qtd"]')?.value);
+                const valorUnitario = Number(row.querySelector('input[placeholder*="Unit"]')?.value);
+                if (!Number.isFinite(qtd) || qtd <= 0 || !Number.isFinite(valorUnitario) || valorUnitario < 0) {
+                    return alert(`Confira a quantidade e o valor unitário do item "${produto.Nome}".`);
+                }
+
+                itens.push({
+                    nome: variacao ? `${produto.Nome} - ${variacao}` : produto.Nome,
+                    qtd,
+                    valorUnitario
+                });
+            }
+
+            if (itens.length === 0) return alert('Adicione ao menos um item ao pedido.');
+
+            const novoPedido = {
+                action: 'salvarPedido',
+                idPedido: "PED-" + String(Date.now()).slice(-4),
+                fornecedor: loja,
+                responsavel: document.getElementById('pre-responsavel').value,
+                formaPagto: document.getElementById('pre-pagamento').value,
+                total: itens.reduce((total, item) => total + item.qtd * item.valorUnitario, 0),
+                itens: itens
+            };
+
+            const result = await apiFetch(novoPedido);
+            if (!result || result.success !== true) {
+                return alert('O servidor não confirmou a gravação. Verifique se a versão atualizada do Apps Script foi publicada.');
+            }
+
+            const sourceRequestIds = [...document.querySelectorAll('#itens-container > div[data-solicitacao-id]')]
+                .map(row => row.dataset.solicitacaoId);
+            let requestLinkFailed = false;
+            if (sourceRequestIds.length > 0) {
+                try {
+                    const linkResult = await apiFetch({
+                        action: 'vincularSolicitacoesAoPedido',
+                        solicitacaoIds: sourceRequestIds,
+                        idPedido: novoPedido.idPedido
+                    });
+                    requestLinkFailed = !linkResult || linkResult.success !== true;
+                } catch (error) {
+                    requestLinkFailed = true;
+                    console.error('Pedido criado, mas não foi possível vincular as solicitações:', error);
+                }
+            }
+
+            alert(requestLinkFailed
+                ? `Pedido ${novoPedido.idPedido} criado, mas não foi possível atualizar o status das solicitações.`
+                : 'Pedido ' + novoPedido.idPedido + ' enviado para o Google Sheets com sucesso!');
+            resetarFormularioPrePedido();
+            await carregarDadosSheet();
+            // A função resetarFormularioPrePedido já lida com a limpeza, então a linha abaixo foi removida.
+            switchTab('pedidos-comprados');
+        }
+
+        function salvarRascunhoPedido() {
+            const form = document.getElementById('form-pre-pedido');
+            const inputs = form.querySelectorAll('input, select');
+            
+            // Trava o formulário
+            inputs.forEach(input => input.disabled = true);
+            document.querySelector('#itens-container + button').classList.add('hidden'); // Oculta "Adicionar Item"
+
+            // Altera os botões de ação
+            const containerBotoes = document.getElementById('botoes-acao-pedido');
+            containerBotoes.innerHTML = `
+                <button type="button" onclick="editarRascunhoPedido()" class="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-xs font-medium flex items-center gap-2">
+                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    <span>Editar</span>
+                </button>
+                <button type="button" onclick="aprovarPedido()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>APROVAR</span>
+                </button>
+            `;
+            lucide.createIcons();
+        }
+
+        function editarRascunhoPedido() {
+            const form = document.getElementById('form-pre-pedido');
+            form.querySelectorAll('input, select').forEach(input => input.disabled = false);
+            document.querySelector('#itens-container + button').classList.remove('hidden'); // Mostra "Adicionar Item"
+        }
+
+        async function atualizarStatusPedido() {
+            const idPedido = document.getElementById('detalhe-pedido-id').innerText;
+            const novoStatus = document.getElementById('detalhe-pedido-status').value;
+
+            const payload = { action: 'atualizarStatus', idPedido, novoStatus };
+
+            await apiFetch(payload);
+            alert(`Status do pedido ${idPedido} atualizado para ${novoStatus}.`);
+            fecharModalDetalhePedido();
+            carregarDadosSheet();
+        }
+
+        async function marcarComoPago(idPedido) {
+            const novoStatus = 'COMPRADO';
+
+            const payload = { action: 'atualizarStatus', idPedido, novoStatus };
+
+            await apiFetch(payload);
+            alert(`Pedido ${idPedido} foi marcado como pago e movido para a lista de comprados.`);
+            carregarDadosSheet(); // Recarrega os dados para atualizar as listas
+        }
+
+        async function adicionarNovaVariacao(itemId, novaVariacao) {
+            if (!itemId || !novaVariacao) return;
+
+            const payload = { action: 'adicionarVariacao', itemId, novaVariacao };
+
+            await apiFetch(payload);
+            alert(`Variação "${novaVariacao}" adicionada com sucesso!`);
+            fecharModalNovaVariacao();
+            await carregarDadosSheet();
+        }
+
+        async function salvarItemCatalogo() {
+            const quickCatalogModal = document.getElementById('modal-cadastro-rapido');
+            const modalIsOpen = !quickCatalogModal.classList.contains('hidden');
+            const originatingRowId = quickCatalogModal.dataset.rowId || '';
+            const form = modalIsOpen
+                ? document.querySelector('#modal-cadastro-conteudo form')
+                : document.getElementById('form-catalogo');
+            if (!form) return;
+
+            const nome = form.querySelector('.catalog-name').value.trim();
+            if (!nome) {
+                alert('O nome do item é obrigatório.');
+                return;
+            }
+
+            const variacoes = [];
+            form.querySelectorAll('.catalog-variations input').forEach(input => {
+                if (input.value) variacoes.push(input.value);
+            });
+
+            const novoItem = {
+                action: 'salvarItemCatalogo',
+                nome: nome,
+                id: "CAT-" + String(Date.now()).slice(-5), // Adiciona um ID único
+                categoria: form.querySelector('.catalog-category').value,
+                variacoes: variacoes.join(', ') // Junta as variações em uma string
+            };
+
+            await apiFetch(novoItem);
+            alert(`Item "${nome}" salvo no catálogo!`);            
+            if (!modalIsOpen) {
+                // Se não estiver no modal, reseta o formulário da página
+                form.reset();
+                form.querySelector('.catalog-variations').innerHTML = '';
+            } else {
+                fecharModalCadastroRapido();
+            }
+            await carregarDadosSheet();
+            atualizarOpcoesItensPedido(
+                modalIsOpen ? novoItem.id : '',
+                modalIsOpen ? originatingRowId : ''
+            );
+        }
+
+        function adicionarLinhaVariacao(button) {
+            const form = button.closest('form');
+            const container = form && form.querySelector('.catalog-variations');
+            if (!container) return;
+
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Ex: Azul, 500g';
+            input.className = 'w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 bg-transparent';
+            input.setAttribute('aria-label', 'Variação do item');
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.title = 'Remover variação';
+            removeButton.className = 'p-2 text-rose-600 hover:bg-rose-50 rounded-lg';
+            removeButton.innerHTML = '<i data-lucide="trash-2" class="w-4 h-4"></i>';
+            removeButton.addEventListener('click', () => row.remove());
+
+            row.append(input, removeButton);
+            container.appendChild(row);
+            lucide.createIcons();
+        }
+
+        async function enviarSolicitacaoSheet() {
+            const nome = document.getElementById('sol-colaborador').value.trim();
+            const itens = [];
+
+            for (const row of document.querySelectorAll('#sol-itens-container > div')) {
+                const itemSelect = row.querySelector('.sol-item-select');
+                const variantSelect = row.querySelector('.sol-variant-select');
+                const itemId = itemSelect?.value;
+                if (!itemId) continue;
+
+                const item = dbCatalogo.find(entry => String(entry.ID) === String(itemId));
+                if (!item) {
+                    alert('Um dos itens selecionados não está no catálogo. Atualize a página e tente novamente.');
+                    return;
+                }
+
+                const variacao = variantSelect?.value || '';
+                const hasVariations = String(item.Variacoes || '').split(',').some(value => value.trim());
+                if (hasVariations && !variacao) {
+                    alert(`Selecione uma variação para "${item.Nome}".`);
+                    return;
+                }
+
+                const quantityInput = row.querySelector('.sol-item-quantity');
+                const quantidade = Number(quantityInput?.value);
+                if (!Number.isInteger(quantidade) || quantidade < 1) {
+                    alert(`Informe uma quantidade válida para "${item.Nome}".`);
+                    return;
+                }
+
+                itens.push({ nome: item.Nome, variacao, qtd: quantidade });
+            }
+
+            if (!nome) {
+                alert('Informe o nome de quem está solicitando.');
+                return;
+            }
+            if (itens.length === 0) {
+                alert('Adicione pelo menos um item à solicitação.');
+                return;
+            }
+
+            const payload = {
+                action: 'salvarSolicitacao',
+                colaborador: nome,
+                setor: document.getElementById('sol-setor').value.trim(),
+                itens,
+                prioridade: document.getElementById('sol-prioridade').value,
+                justificativa: document.getElementById('sol-justificativa').value.trim()
+            };
+
+            try {
+                const result = await apiFetch(payload);
+                if (!result || result.success !== true) {
+                    alert('O servidor não confirmou o envio. Publique a versão atualizada do Apps Script.');
+                    return;
+                }
+
+                fecharModalSolicitacao();
+                await carregarDadosSheet();
+                alert('Solicitação enviada com sucesso.');
+            } catch (error) {
+                console.error('Erro ao enviar solicitação:', error);
+            }
+        }
+
+        function abrirFormularioEstoque() {
+            const form = document.getElementById('form-estoque');
+            form.classList.remove('hidden');
+            document.getElementById('estoque-nome').focus();
+        }
+
+        function fecharFormularioEstoque() {
+            const form = document.getElementById('form-estoque');
+            form.reset();
+            document.getElementById('estoque-qtd').value = '1';
+            form.classList.add('hidden');
+        }
+
+        async function salvarEstoqueManual() {
+            const form = document.getElementById('form-estoque');
+            const button = document.getElementById('btn-salvar-estoque');
+            const payload = {
+                action: 'salvarEstoque',
+                nome: document.getElementById('estoque-nome').value.trim(),
+                categoria: document.getElementById('estoque-categoria').value.trim(),
+                qtd: document.getElementById('estoque-qtd').value,
+                qtdMinima: document.getElementById('estoque-minimo').value,
+                localizacao: document.getElementById('estoque-localizacao').value.trim(),
+                responsavel: currentUser?.name || ''
+            };
+
+            button.disabled = true;
+            try {
+                const result = await apiFetch(payload);
+                if (!result || result.success !== true) {
+                    throw new Error('O servidor não confirmou a atualização do estoque.');
+                }
+
+                fecharFormularioEstoque();
+                await carregarDadosSheet();
+                alert('Estoque atualizado com sucesso.');
+            } catch (error) {
+                console.error('Erro ao atualizar estoque:', error);
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        async function parseApiResponse(response) {
+            const text = await response.text();
+            if (!text) return null;
+
+            const trimmed = text.trim();
+            if (!trimmed) return null;
+
+            if (trimmed === 'null') return null;
+
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                try {
+                    return JSON.parse(trimmed);
+                } catch (err) {
+                    console.error('Resposta JSON inválida:', trimmed);
+                    throw new Error('A resposta da API não é um JSON válido.');
+                }
+            }
+
+            return trimmed;
+        }
+
+        // Helper function for all POST requests to the API
+        async function apiFetch(payload) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`Server error (${res.status}): ${errorText}`);
+                }
+
+                const parsed = await parseApiResponse(res);
+                if (parsed && typeof parsed === 'object' && parsed.error) {
+                    throw new Error(parsed.error);
+                }
+                if (parsed && typeof parsed === 'object' && parsed.id) {
+                    return parsed;
+                }
+
+                return parsed;
+            } catch (err) {
+                console.error('API Fetch Error:', err);
+                alert(err.message || 'Ocorreu um erro de comunicação. Verifique o console (F12) para detalhes.');
+                throw err;
+            }
+        }
+
+        // FUNÇÕES DE UI E RENDERS
+        function switchTab(tabId) {
+            const adminTabs = ['dashboard', 'pre-pedidos', 'pedidos-comprados', 'estoque', 'cadastro-itens'];
+            if (currentUserRole !== 'admin' && adminTabs.includes(tabId)) {
+                tabId = 'solicitacoes';
+            }
+
+            const targetTab = document.getElementById('tab-' + tabId);
+            if (!targetTab) return;
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            targetTab.classList.remove('hidden');
+            document.querySelectorAll('#mobile-navigation [data-tab]').forEach(button => {
+                const isActive = button.dataset.tab === tabId;
+                button.classList.toggle('text-brand-600', isActive);
+                button.classList.toggle('font-semibold', isActive);
+                button.classList.toggle('text-slate-500', !isActive);
+                if (isActive) button.setAttribute('aria-current', 'page');
+                else button.removeAttribute('aria-current');
+            });
+        }
+
+        function setUserRole(role) {
+            const normalizedRole = String(role || '').trim().toLowerCase();
+            const isAdmin = ['admin', 'administrador', 'compras', 'compras (admin)'].includes(normalizedRole);
+            currentUserRole = isAdmin ? 'admin' : 'colab';
+
+            document.querySelectorAll('.admin-only').forEach(element => {
+                element.classList.toggle('role-hidden', !isAdmin);
+            });
+            document.getElementById('user-role-label').innerText = isAdmin ? 'Compras (Admin)' : 'Colaborador';
+            switchTab(isAdmin ? 'dashboard' : 'solicitacoes');
+            renderSolicitacoes(); // Re-renderiza a lista de solicitações para aplicar o filtro
+            if (isAdmin) resetarFormularioPrePedido();
+        }
+
+        function resetarFormularioPrePedido() {
+            const form = document.getElementById('form-pre-pedido');
+            form.reset();
+            form.querySelectorAll('input, select').forEach(input => input.disabled = false);
+            document.querySelector('#itens-container + button').classList.remove('hidden');
+            document.getElementById('itens-container').innerHTML = '';
+            
+            // Restaura os botões de ação para o estado inicial
+            const containerBotoes = document.getElementById('botoes-acao-pedido');
+            containerBotoes.innerHTML = `
+                <button type="button" onclick="salvarRascunhoPedido()" class="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 rounded-lg text-xs font-medium flex items-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Salvar Rascunho</span>
+                </button>
+                <button type="button" onclick="aprovarPedido()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Aprovar e Gravar na Planilha</span>
+                </button>`;
+            adicionarLinhaItem();
+            lucide.createIcons();
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        function abrirModalSolicitacao() {
+            const colaboradorInput = document.getElementById('sol-colaborador');
+            if (currentUser) {
+                colaboradorInput.value = currentUser.name;
+                colaboradorInput.readOnly = true;
+                colaboradorInput.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+            }
+            if (!document.querySelector('#sol-itens-container > div')) {
+                adicionarItemSolicitacao();
+            }
+            document.getElementById('modal-solicitacao').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function fecharModalSolicitacao() {
+            document.getElementById('modal-solicitacao').classList.add('hidden');
+            ['sol-setor', 'sol-justificativa'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('sol-itens-container').innerHTML = '';
+            document.getElementById('sol-prioridade').value = 'Baixa';
+        }
+
+        function adicionarItemSolicitacao() {
+            const container = document.getElementById('sol-itens-container');
+            const rowId = `sol-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            const row = document.createElement('div');
+            row.id = `row-${rowId}`;
+            row.className = 'grid grid-cols-1 sm:grid-cols-12 gap-2 items-center p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg';
+            row.innerHTML = `
+                <select class="sol-item-select sm:col-span-4 w-full text-xs border border-slate-300 dark:border-slate-700 rounded-md p-2 bg-transparent" onchange="selecionarItem(this, '${rowId}')">
+                    <option value="">Selecione um item...</option>
+                    ${dbCatalogo.map(item => `<option value="${item.ID}">${item.Nome}</option>`).join('')}
+                    <option value="--novo--" class="font-bold text-brand-600">-- Cadastrar novo item --</option>
+                </select>
+                <select id="variacao-${rowId}" class="sol-variant-select sm:col-span-4 w-full text-xs border border-slate-300 dark:border-slate-700 rounded-md p-2 bg-transparent disabled:bg-slate-100 dark:disabled:bg-slate-800" onchange="handleVariacaoChange(this, '${rowId}')" disabled>
+                    <option value="">Selecione uma variação</option>
+                </select>
+                <div class="sm:col-span-3 flex items-center justify-center border border-slate-300 dark:border-slate-700 rounded-md">
+                    <button type="button" onclick="ajustarQuantidadeSolicitacao('${rowId}', -1)" aria-label="Diminuir quantidade" class="px-3 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-l-md">−</button>
+                    <input id="sol-qtd-${rowId}" class="sol-item-quantity w-12 text-center text-xs bg-transparent" type="number" min="1" step="1" value="1" aria-label="Quantidade">
+                    <button type="button" onclick="ajustarQuantidadeSolicitacao('${rowId}', 1)" aria-label="Aumentar quantidade" class="px-3 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-r-md">+</button>
+                </div>
+                <button type="button" onclick="document.getElementById('row-${rowId}').remove()" title="Remover item" aria-label="Remover item" class="sm:col-span-1 p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-md justify-self-end">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            `;
+            container.appendChild(row);
+            lucide.createIcons();
+        }
+
+        function ajustarQuantidadeSolicitacao(rowId, incremento) {
+            const input = document.getElementById(`sol-qtd-${rowId}`);
+            if (!input) return;
+            input.value = Math.max(1, (Number(input.value) || 1) + incremento);
+        }
+
+        function abrirModalDetalhePedido(idPedido) {
+            const pedido = dbPedidos.find(p => p.ID === idPedido);
+            if (!pedido) return;
+
+            document.getElementById('detalhe-pedido-id').innerText = pedido.ID;
+            document.getElementById('detalhe-pedido-fornecedor').innerText = pedido.Fornecedor;
+            document.getElementById('detalhe-pedido-status').value = pedido.Status;
+
+            const itensContainer = document.getElementById('detalhe-pedido-itens');
+            itensContainer.innerHTML = (pedido.Itens || []).map(item => `
+                <div class="grid grid-cols-12 gap-2 text-xs p-2 rounded-md bg-slate-50 dark:bg-slate-900/50">
+                    <div class="col-span-7 font-medium">${item.nome}</div>
+                    <div class="col-span-2 text-slate-500">Qtd: ${item.qtd}</div>
+                    <div class="col-span-3 text-right font-semibold">R$ ${(parseFloat(item.valorUnitario) || 0).toFixed(2)}</div>
+                </div>
+            `).join('');
+            if (!pedido.Itens || pedido.Itens.length === 0) {
+                itensContainer.innerHTML = `<p class="text-xs text-slate-400 text-center p-4">Nenhum item detalhado para este pedido.</p>`;
+            }
+
+            document.getElementById('modal-detalhe-pedido').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function fecharModalDetalhePedido() { document.getElementById('modal-detalhe-pedido').classList.add('hidden'); }
+
+        function updateUserInfo() {
+            if (!currentUser) return;
+            document.getElementById('user-name').innerText = currentUser.name;
+            document.getElementById('user-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
+            // O rótulo da função (role label) é atualizado por setUserRole()
+        }
+
+        function abrirModalCadastroRapido(rowId) {
+            const modalContent = document.getElementById('modal-cadastro-conteudo');
+            const formCatalogo = document.getElementById('form-catalogo').cloneNode(true);
+            formCatalogo.id = 'form-catalogo-modal';
+            modalContent.innerHTML = '';
+            modalContent.appendChild(formCatalogo);
+
+            const modal = document.getElementById('modal-cadastro-rapido');
+            modal.dataset.rowId = rowId;
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function fecharModalCadastroRapido() { document.getElementById('modal-cadastro-rapido').classList.add('hidden'); }
+
+        function abrirModalNovaVariacao(itemSelectElement, rowId) {
+            document.getElementById('modal-nova-variacao').classList.remove('hidden');
+            document.getElementById('btn-salvar-variacao').onclick = async () => {
+                const novaVariacao = document.getElementById('input-nova-variacao').value;
+                const itemId = itemSelectElement.value; // Pega o ID do item do select principal
+                await adicionarNovaVariacao(itemId, novaVariacao); // Salva a variação e recarrega os dados
+                selecionarItem(itemSelectElement, rowId); // Repopula o dropdown de variações com os dados atualizados
+                document.getElementById(`variacao-${rowId}`).value = novaVariacao; // Seleciona a nova variação
+            };
+        }
+        function fecharModalNovaVariacao() { document.getElementById('modal-nova-variacao').classList.add('hidden'); }
+
+        function renderDashboard() {
+            document.getElementById('kpi-aberto').innerText = dbPedidos.filter(p => p.Status === 'Aguardando Compra').length;
+            document.getElementById('kpi-aprovados').innerText = dbPedidos.length;
+            
+            const total = dbPedidos.reduce((acc, p) => acc + (parseFloat(p.Total) || 0), 0);
+            document.getElementById('kpi-valor-total').innerText = 'R$ ' + total.toFixed(2);
+
+            const criticos = dbEstoque.filter(e => (parseFloat(e.QtdAtual) || 0) <= (parseFloat(e.QtdMinima) || 0));
+            document.getElementById('kpi-estoque-baixo').innerText = criticos.length;
+
+            document.getElementById('dash-solicitacoes').innerHTML = dbSolicitacoes.map(s => `
+                <tr>
+                    <td class="py-2">${s.Colaborador || ''}</td>
+                    <td class="py-2">${s.Item || ''}</td>
+                    <td class="py-2">${s.Qtd || ''}</td>
+                    <td class="py-2"><span class="px-2 py-0.5 text-[10px] bg-amber-100 text-amber-800 rounded font-bold">${s.Prioridade || 'Normal'}</span></td>
+                </tr>
+            `).join('');
+
+            document.getElementById('dash-estoque-baixo').innerHTML = criticos.map(e => `
+                <tr>
+                    <td class="py-2">${e.Nome || ''}</td>
+                    <td class="py-2 font-bold text-rose-600">${e.QtdAtual || 0}</td>
+                    <td class="py-2">${e.QtdMinima || 0}</td>
+                    <td class="py-2"><span class="px-2 py-0.5 text-[10px] bg-rose-100 text-rose-800 rounded font-bold">REPOR</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderSolicitacoes() {
+            let solicitacoesFiltradas = dbSolicitacoes;
+
+            // Se o usuário for um colaborador, filtra para ver apenas as suas solicitações
+            if (currentUserRole === 'colab') {
+                const nomeUsuarioLogado = document.getElementById('user-name').innerText;
+                solicitacoesFiltradas = dbSolicitacoes.filter(s => s.Colaborador === nomeUsuarioLogado);
+            }
+
+            const query = (document.getElementById('filtro-solicitacoes')?.value || '').trim().toLowerCase();
+            const statusFilter = document.getElementById('filtro-status-solicitacoes')?.value || '';
+            solicitacoesFiltradas = solicitacoesFiltradas.filter(s => {
+                const matchesText = `${s.Colaborador || ''} ${s.Setor || ''} ${s.Item || ''}`.toLowerCase().includes(query);
+                const matchesStatus = !statusFilter || (s.Status || 'Pendente') === statusFilter;
+                return matchesText && matchesStatus;
+            });
+
+            const container = document.getElementById('lista-solicitacoes');
+            
+            if (solicitacoesFiltradas.length === 0) {
+                container.innerHTML = `<tr><td colspan="8" class="text-center p-4 text-slate-400">Nenhuma solicitação encontrada.</td></tr>`;
+                return;
+            }
+
+            container.innerHTML = solicitacoesFiltradas.map(s => `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td class="p-3">${s.Data ? new Date(s.Data).toLocaleDateString() : '-'}</td>
+                    <td class="p-3 font-medium">${s.Colaborador || ''}</td>
+                    <td class="p-3">${s.Setor || ''}</td>
+                    <td class="p-3">${s.Item || ''}</td>
+                    <td class="p-3">${s.Qtd || ''}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 text-[10px] bg-slate-100 text-slate-700 rounded">${s.Prioridade || 'Normal'}</span></td>
+                    <td class="p-3"><span class="px-2 py-0.5 text-[10px] bg-amber-100 text-amber-800 rounded font-bold">${s.Status || 'Pendente'}</span></td>
+                    <td class="p-3 text-right">
+                        <button type="button" onclick="excluirSolicitacao('${s.ID}')" title="Excluir solicitação" aria-label="Excluir solicitação" class="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        async function excluirSolicitacao(id) {
+            const solicitacao = dbSolicitacoes.find(item => String(item.ID) === String(id));
+            if (!solicitacao) {
+                alert('Não foi possível localizar essa solicitação. Atualize a página e tente novamente.');
+                return;
+            }
+
+            const confirmado = confirm(`Excluir a solicitação de "${solicitacao.Item}" feita por ${solicitacao.Colaborador}?`);
+            if (!confirmado) return;
+
+            try {
+                const result = await apiFetch({ action: 'excluirSolicitacao', id });
+                if (!result || result.success !== true) {
+                    alert('O servidor não confirmou a exclusão da solicitação.');
+                    return;
+                }
+
+                await carregarDadosSheet();
+                alert('Solicitação excluída.');
+            } catch (error) {
+                console.error('Erro ao excluir solicitação:', error);
+            }
+        }
+
+        function renderPedidosComprados() {
+            renderSolicitacoesRecebidas();
+            const query = (document.getElementById('filtro-pedidos')?.value || '').trim().toLowerCase();
+            const statusFilter = document.getElementById('filtro-status-pedidos')?.value || '';
+            const pedidosFiltrados = dbPedidos.filter(p => {
+                const matchesText = `${p.ID || ''} ${p.Fornecedor || ''} ${p.Responsavel || ''}`.toLowerCase().includes(query);
+                const matchesStatus = !statusFilter || (p.Status || '') === statusFilter;
+                return matchesText && matchesStatus;
+            });
+
+            document.getElementById('lista-pedidos-comprados').innerHTML = pedidosFiltrados.length ? pedidosFiltrados.map(p => `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" onclick="abrirModalDetalhePedido('${p.ID}')">
+                    <td class="p-3 font-bold">${p.ID || ''}</td>
+                    <td class="p-3">${p.Data ? new Date(p.Data).toLocaleDateString() : '-'}</td>
+                    <td class="p-3">${p.Fornecedor || ''}</td>
+                    <td class="p-3">${p.Responsavel || ''}</td>
+                    <td class="p-3">${p.FormaPagto || ''}</td>
+                    <td class="p-3 font-bold text-brand-600">R$ ${(parseFloat(p.Total)||0).toFixed(2)}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded text-[10px] font-bold 
+                            ${p.Status === 'COMPRADO' ? 'bg-emerald-100 text-emerald-800' : ''}
+                            ${p.Status === 'VERIFICANDO' ? 'bg-yellow-100 text-yellow-800' : ''}
+                            ${p.Status === 'RECUSADO' ? 'bg-rose-100 text-rose-800' : ''}
+                            ${p.Status === 'Aguardando Compra' ? 'bg-blue-100 text-blue-800' : ''}
+                        ">
+                            ${p.Status || 'Aprovado'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('') : '<tr><td colspan="7" class="text-center p-4 text-slate-400">Nenhum pedido encontrado.</td></tr>';
+        }
+
+        function renderSolicitacoesRecebidas() {
+            const container = document.getElementById('lista-solicitacoes-pedidos');
+            if (!container) return;
+
+            if (dbSolicitacoes.length === 0) {
+                container.innerHTML = '<tr><td colspan="9" class="text-center p-4 text-slate-400">Nenhuma solicitação recebida.</td></tr>';
+                return;
+            }
+
+            const query = (document.getElementById('filtro-solicitacoes-recebidas')?.value || '').trim().toLowerCase();
+            const statusFilter = document.getElementById('filtro-status-solicitacoes-recebidas')?.value || '';
+            const filteredRequests = dbSolicitacoes.filter(s => {
+                const matchesText = `${s.Colaborador || ''} ${s.Setor || ''} ${s.Item || ''}`.toLowerCase().includes(query);
+                const matchesStatus = !statusFilter || (s.Status || 'Pendente') === statusFilter;
+                return matchesText && matchesStatus;
+            });
+
+            if (filteredRequests.length === 0) {
+                container.innerHTML = '<tr><td colspan="9" class="text-center p-4 text-slate-400">Nenhuma solicitação corresponde aos filtros.</td></tr>';
+                return;
+            }
+
+            const statuses = ['Pendente', 'Aprovada', 'Aguardando Compra', 'VERIFICANDO', 'COMPRADO', 'RECUSADO'];
+            container.innerHTML = filteredRequests.map(s => {
+                const currentStatus = s.Status || 'Pendente';
+                const availableStatuses = statuses.includes(currentStatus)
+                    ? statuses
+                    : [currentStatus, ...statuses];
+
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="p-3">
+                            <input type="checkbox" class="solicitacao-pedido-select" value="${s.ID}" aria-label="Selecionar solicitação de ${s.Item}" ${currentStatus === 'Aprovada' ? '' : 'disabled'}>
+                        </td>
+                        <td class="p-3">${s.Data ? new Date(s.Data).toLocaleDateString() : '-'}</td>
+                        <td class="p-3 font-medium">${s.Colaborador || ''}</td>
+                        <td class="p-3">${s.Setor || ''}</td>
+                        <td class="p-3">${s.Item || ''}</td>
+                        <td class="p-3">${s.Qtd || ''}</td>
+                        <td class="p-3">${s.Prioridade || 'Normal'}</td>
+                        <td class="p-3">
+                            <select onchange="salvarStatusSolicitacao('${s.ID}', this.value, this)" class="text-xs border border-slate-300 dark:border-slate-700 rounded-md p-2 bg-transparent">
+                                ${availableStatuses.map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${status}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td class="p-3">${s.PedidoID || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function criarPedidoComSolicitacoesSelecionadas() {
+            const selectedIds = Array.from(document.querySelectorAll('.solicitacao-pedido-select:checked'))
+                .map(input => input.value);
+            if (selectedIds.length === 0) {
+                alert('Selecione pelo menos uma solicitação aprovada.');
+                return;
+            }
+
+            const selectedRequests = selectedIds.map(id =>
+                dbSolicitacoes.find(request => String(request.ID) === String(id))
+            ).filter(Boolean);
+            if (selectedRequests.some(request => request.Status !== 'Aprovada')) {
+                alert('Somente solicitações com status Aprovada podem ser incluídas.');
+                return;
+            }
+
+            const preparedRequests = selectedRequests.map(request => {
+                const requestItem = String(request.Item || '').trim();
+                const product = [...dbCatalogo]
+                    .sort((first, second) => String(second.Nome || '').length - String(first.Nome || '').length)
+                    .find(item => requestItem === item.Nome || requestItem.startsWith(item.Nome + ' - '));
+
+                if (!product) return { request, error: `O item "${requestItem}" não está no catálogo.` };
+
+                const variation = requestItem === product.Nome
+                    ? ''
+                    : requestItem.slice(product.Nome.length + 3).trim();
+                const productVariations = String(product.Variacoes || '').split(',').map(value => value.trim());
+                if (variation && !productVariations.some(value => value.toLowerCase() === variation.toLowerCase())) {
+                    return { request, error: `A variação "${variation}" de "${product.Nome}" não está no catálogo.` };
+                }
+
+                return { request, product, variation };
+            });
+
+            const invalidRequest = preparedRequests.find(item => item.error);
+            if (invalidRequest) {
+                alert(`${invalidRequest.error} Cadastre o item/variação no catálogo antes de criar o pedido.`);
+                return;
+            }
+
+            const existingRows = [...document.querySelectorAll('#itens-container > div')];
+            if (existingRows.some(row => row.querySelector('select')?.value) &&
+                !confirm('Adicionar as solicitações selecionadas aos itens que já estão no pré-pedido?')) {
+                return;
+            }
+
+            switchTab('pre-pedidos');
+            if (document.querySelector('#itens-container input:disabled')) editarRascunhoPedido();
+
+            preparedRequests.forEach(({ request, product, variation }) => {
+                adicionarLinhaItem();
+                const row = document.querySelector('#itens-container > div:last-child');
+                const rowId = row.id.replace('row-', '');
+                const selects = row.querySelectorAll('select');
+                selects[0].value = String(product.ID);
+                selecionarItem(selects[0], rowId);
+                if (variation) selects[1].value = variation;
+                row.querySelector('input[placeholder="Qtd"]').value = Number(request.Qtd) || 1;
+                row.dataset.solicitacaoId = request.ID;
+            });
+
+            calcularTotalLinha();
+            alert('Itens aprovados adicionados ao pré-pedido. Informe fornecedor e pagamento antes de aprovar.');
+        }
+
+        async function salvarStatusSolicitacao(id, novoStatus, selectElement) {
+            const solicitacao = dbSolicitacoes.find(item => String(item.ID) === String(id));
+            if (!solicitacao) return;
+
+            const statusAnterior = solicitacao.Status || 'Pendente';
+            try {
+                const result = await apiFetch({ action: 'atualizarStatusSolicitacao', id, novoStatus });
+                if (!result || result.success !== true) {
+                    throw new Error('O servidor não confirmou a alteração do status.');
+                }
+
+                solicitacao.Status = novoStatus;
+                renderSolicitacoes();
+                renderSolicitacoesRecebidas();
+                await carregarDadosSheet();
+            } catch (error) {
+                selectElement.value = statusAnterior;
+                console.error('Erro ao atualizar status da solicitação:', error);
+            }
+        }
+
+        function renderPedidosPendentes() {
+            const pendentes = dbPedidos.filter(p => p.Status === 'Aguardando Compra');
+            document.getElementById('lista-pedidos-pendentes').innerHTML = pendentes.map(p => `
+                <tr>
+                    <td class="py-2 font-medium text-slate-500">${p.ID || ''}</td>
+                    <td class="py-2">${p.Fornecedor || ''}</td>
+                    <td class="py-2 font-bold text-brand-600">R$ ${(parseFloat(p.Total)||0).toFixed(2)}</td>
+                    <td class="py-2">
+                        <button onclick="marcarComoPago('${p.ID}')" class="px-2 py-1 text-[10px] bg-emerald-100 text-emerald-800 rounded font-bold">Marcar como Pago</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderEstoque() {
+            const query = (document.getElementById('filtro-estoque')?.value || '').trim().toLowerCase();
+            const filteredStock = dbEstoque
+                .map((item, index) => ({ item, index }))
+                .filter(({ item }) => `${item.Nome || ''} ${item.Categoria || ''} ${item.Localizacao || ''}`.toLowerCase().includes(query));
+
+            document.getElementById('lista-estoque').innerHTML = filteredStock.length
+                ? filteredStock.map(({ item: e, index }) => `
+                <tr>
+                    <td class="p-3 font-medium">${e.Nome || ''}</td>
+                    <td class="p-3">${e.Categoria || ''}</td>
+                    <td class="p-3 font-bold">
+                        <div id="estoque-qtd-cell-${index}" class="flex items-center gap-2">
+                            <span>${e.QtdAtual ?? 0}</span>
+                            <button type="button" onclick="editarCampoEstoque(${index}, 'QtdAtual')" title="Editar quantidade" aria-label="Editar quantidade" class="admin-only p-1 text-slate-500 hover:text-brand-600 rounded">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="p-3">
+                        <div id="estoque-min-cell-${index}" class="flex items-center gap-2">
+                            <span>${e.QtdMinima ?? 0}</span>
+                            <button type="button" onclick="editarCampoEstoque(${index}, 'QtdMinima')" title="Editar quantidade mínima" aria-label="Editar quantidade mínima" class="admin-only p-1 text-slate-500 hover:text-brand-600 rounded">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="p-3">${e.Localizacao || '-'}</td>
+                    <td class="p-3 text-slate-400">${e.UltimaMov || '-'}</td>
+                </tr>
+            `).join('')
+                : '<tr><td colspan="6" class="text-center p-4 text-slate-400">Nenhum material encontrado.</td></tr>';
+            lucide.createIcons();
+            renderHistoricoEstoque();
+        }
+
+        function renderHistoricoEstoque() {
+            const container = document.getElementById('lista-movimentacoes-estoque');
+            if (!container) return;
+
+            const query = (document.getElementById('filtro-movimentacoes')?.value || '').trim().toLowerCase();
+            const movements = dbMovimentacoesEstoque.filter(movement =>
+                `${movement.Material || ''} ${movement.Tipo || ''} ${movement.Responsavel || ''} ${movement.Motivo || ''}`.toLowerCase().includes(query)
+            );
+
+            container.innerHTML = movements.length
+                ? movements.map(movement => `
+                    <tr>
+                        <td class="p-3">${movement.Data ? new Date(movement.Data).toLocaleString('pt-BR') : '-'}</td>
+                        <td class="p-3">${movement.Tipo || ''}</td>
+                        <td class="p-3 font-medium">${movement.Material || ''}</td>
+                        <td class="p-3">${movement.Quantidade > 0 ? '+' : ''}${movement.Quantidade ?? 0}</td>
+                        <td class="p-3">${movement.Anterior ?? 0}</td>
+                        <td class="p-3 font-semibold">${movement.Atual ?? 0}</td>
+                        <td class="p-3">${movement.Responsavel || '-'}</td>
+                        <td class="p-3">${movement.Motivo || '-'}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="8" class="text-center p-4 text-slate-400">Nenhuma movimentação encontrada.</td></tr>';
+        }
+
+        function editarCampoEstoque(index, campo) {
+            const isMinimum = campo === 'QtdMinima';
+            const cellId = isMinimum ? `estoque-min-cell-${index}` : `estoque-qtd-cell-${index}`;
+            const cell = document.getElementById(cellId);
+            const quantity = Number(dbEstoque[index]?.[campo]) || 0;
+            if (!cell) return;
+
+            cell.innerHTML = `
+                <input id="estoque-edit-${campo}-${index}" type="number" min="0" step="1" value="${quantity}" aria-label="${isMinimum ? 'Nova quantidade mínima' : 'Nova quantidade'}" class="w-20 text-xs border border-slate-300 dark:border-slate-700 rounded p-1 bg-transparent">
+                <button type="button" onclick="salvarCampoEstoque(${index}, '${campo}')" title="Salvar" aria-label="Salvar" class="p-1 text-emerald-600 hover:bg-emerald-50 rounded">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                </button>
+                <button type="button" onclick="renderEstoque()" title="Cancelar edição" aria-label="Cancelar edição" class="p-1 text-slate-500 hover:bg-slate-100 rounded">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+            lucide.createIcons();
+            const input = document.getElementById(`estoque-edit-${campo}-${index}`);
+            input.focus();
+            input.select();
+        }
+
+        async function salvarCampoEstoque(index, campo) {
+            const item = dbEstoque[index];
+            const input = document.getElementById(`estoque-edit-${campo}-${index}`);
+            const quantidade = Number(input?.value);
+
+            if (!item || !input || input.value === '' || !Number.isInteger(quantidade) || quantidade < 0) {
+                alert('Informe um número inteiro igual ou maior que zero.');
+                return;
+            }
+
+            try {
+                const result = await apiFetch({
+                    action: 'atualizarQuantidadeEstoque',
+                    nome: item.Nome,
+                    campo,
+                    valor: quantidade,
+                    responsavel: currentUser?.name || ''
+                });
+
+                if (!result || result.success !== true) {
+                    alert('O servidor não confirmou a alteração do estoque.');
+                    return;
+                }
+
+                await carregarDadosSheet();
+            } catch (error) {
+                console.error('Erro ao editar estoque:', error);
+            }
+        }
+
+        function renderCatalogo() {
+            document.getElementById('lista-catalogo').innerHTML = dbCatalogo.map(c => `
+                <tr>
+                    <td class="p-3 font-bold">${c.Nome || ''}</td>
+                    <td class="p-3 font-mono text-slate-400 text-xs">${c.ID || ''}</td>
+                    <td class="p-3">${c.Categoria || ''}</td>
+                    <td class="p-3">${c.Variacoes || ''}</td>
+                </tr>
+            `).join('');
+        }
+
+        function adicionarLinhaItem() {
+            const container = document.getElementById('itens-container');
+            const rowId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            const rowHTML = `
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-start bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700" id="row-${rowId}">
+                    <div class="sm:col-span-4">
+                        <select onchange="selecionarItem(this, '${rowId}')" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-md p-2 bg-transparent">
+                            <option value="">Selecione um item...</option>
+                            ${dbCatalogo.map(item => `<option value="${item.ID}">${item.Nome}</option>`).join('')}
+                            <option value="--novo--" class="font-bold text-brand-600">-- PRODUTO NOVO --</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <select id="variacao-${rowId}" onchange="handleVariacaoChange(this, '${rowId}')" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-md p-2 bg-transparent disabled:bg-slate-100 dark:disabled:bg-slate-800" disabled>
+                            <option value="">Selecione a Variação</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <input type="number" min="1" value="1" onchange="calcularTotalLinha()" id="qtd-${rowId}" placeholder="Qtd" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-md p-2 bg-transparent">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <input type="number" step="0.01" value="0.00" onchange="calcularTotalLinha()" id="unit-${rowId}" placeholder="Vl. Unit (R$)" class="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-md p-2 bg-transparent">
+                    </div>
+                    <div class="sm:col-span-1 text-right">
+                        <button onclick="document.getElementById('row-${rowId}').remove(); calcularTotalLinha();" class="text-rose-500 hover:text-rose-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', rowHTML);
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+            }
+        }
+
+        function atualizarOpcoesItensPedido(itemIdToSelect = '', selectedRowId = '') {
+            document.querySelectorAll('#itens-container > div, #sol-itens-container > div').forEach(row => {
+                const selects = row.querySelectorAll('select');
+                const itemSelect = selects[0];
+                const variationSelect = selects[1];
+                if (!itemSelect || !variationSelect) return;
+
+                const previousItemId = itemSelect.value;
+                const previousVariation = variationSelect.value;
+                const isTargetRow = selectedRowId && row.id === `row-${selectedRowId}`;
+                const desiredItemId = isTargetRow ? itemIdToSelect : previousItemId;
+
+                itemSelect.innerHTML = `
+                    <option value="">Selecione um item...</option>
+                    ${dbCatalogo.map(item => `<option value="${item.ID}">${item.Nome}</option>`).join('')}
+                    <option value="--novo--" class="font-bold text-brand-600">-- PRODUTO NOVO --</option>
+                `;
+
+                const itemExists = dbCatalogo.some(item => String(item.ID) === String(desiredItemId));
+                if (itemExists) {
+                    itemSelect.value = String(desiredItemId);
+                    selecionarItem(itemSelect, row.id.replace('row-', ''));
+
+                    if (!isTargetRow && Array.from(variationSelect.options).some(option => option.value === previousVariation)) {
+                        variationSelect.value = previousVariation;
+                    }
+                } else {
+                    itemSelect.value = '';
+                    variationSelect.innerHTML = '<option value="">Selecione a Variação</option>';
+                    variationSelect.disabled = true;
+                }
+            });
+        }
+
+        function selecionarItem(selectElement, rowId) {
+            const itemId = selectElement.value;
+            const selectVariacao = document.getElementById(`variacao-${rowId}`);
+
+            if (itemId === '--novo--') {
+                abrirModalCadastroRapido(rowId);
+                selectElement.value = ""; // Reseta o select
+                selectVariacao.disabled = true;
+                selectVariacao.innerHTML = '<option value="">Selecione a Variação</option>';
+                return;
+            }
+
+            const itemSelecionado = dbCatalogo.find(item => item.ID === itemId);
+            if (!itemSelecionado) {
+                selectVariacao.disabled = true;
+                return;
+            }
+
+            selectVariacao.innerHTML = `<option value="">Selecione a Variação</option>` + (itemSelecionado.Variacoes || '').split(',').map(v => v.trim()).filter(v => v).map(v => `<option value="${v}">${v}</option>`).join('') + `<option value="--nova--" class="font-bold text-brand-600">-- Nova Variação --</option>`;
+            selectVariacao.disabled = false;
+        }
+
+        function handleVariacaoChange(selectElement, rowId) {
+            if (selectElement.value === '--nova--') {
+                const itemSelect = document.querySelector(`#row-${rowId} select[onchange^="selecionarItem"]`);
+                abrirModalNovaVariacao(itemSelect, rowId); // Passa o elemento do select do item e o ID da linha
+                selectElement.value = ""; // Reseta o select de variação
+            }
+        }
+
+        function calcularTotalLinha() {
+            let total = 0;
+            document.querySelectorAll('#itens-container > div').forEach(row => {
+                const rowId = row.id.replace('row-', '');
+                const qtd = parseFloat(document.getElementById(`qtd-${rowId}`)?.value || 0);
+                const unit = parseFloat(document.getElementById(`unit-${rowId}`)?.value || 0);
+                total += (qtd * unit);
+            });
+            document.getElementById('pre-total-geral').innerText = 'R$ ' + total.toFixed(2).replace('.', ',');
+        }
+    </script>
+</body>
+</html>
