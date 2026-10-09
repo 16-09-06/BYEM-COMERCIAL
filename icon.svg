@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0d9488"/>
-  <path d="M118 153h50l34 151 39-112h34l39 112 34-151h50l-51 222h-48l-41-116-41 116h-48z" fill="#fff"/>
-  <path d="M108 386h296" fill="none" stroke="#99f6e4" stroke-linecap="round" stroke-width="18"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 447 447">
+  <rect width="447" height="447" fill="#245f50"/>
+  <text x="223.5" y="260" text-anchor="middle" fill="#a1edb0" font-family="Georgia, 'Times New Roman', serif" font-size="122" font-weight="700">Byem</text>
+  <circle cx="154" cy="307" r="7" fill="#a1edb0"/>
 </svg>
