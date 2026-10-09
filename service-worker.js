@@ -1,5 +1,13 @@
-const CACHE_NAME = 'byem-shell-v2';
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
+const CACHE_NAME = 'byem-shell-v4';
+const APP_SHELL = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './Logo BYEM.jpeg?v=4',
+  './icon-180.png',
+  './icon-192.png',
+  './icon-512.png'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(
